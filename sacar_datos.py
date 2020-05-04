@@ -1,7 +1,7 @@
 # extraer datos de páginas de INALI sobre clasificación geográfica de lenguas indígenas
 # base URL: https://www.inali.gob.mx/clin-inali/
 # creado por Brandon Aleson 4/22/20
-# versión actualizado 4/22/20
+# versión actualizado 5/3/20
 
 import requests
 from bs4 import BeautifulSoup
