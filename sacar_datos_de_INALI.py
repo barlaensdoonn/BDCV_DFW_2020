@@ -1,7 +1,7 @@
 # extraer datos de páginas de INALI sobre clasificación geográfica de lenguas indígenas
 # base URL: https://www.inali.gob.mx/clin-inali/
 # creado por Brandon Aleson 4/22/20
-# versión actualizado 5/31/20
+# versión actualizado 7/5/20
 
 import os
 import bs4
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         sopa = bs4.BeautifulSoup(r.text, 'html.parser')
         agrup_ling, familia_ling = sacar_agrup_y_familia(sopa)
 
-        # TEMPORARY
+        # TEMPORARY:
         if agrup_ling in ['Chuj', 'kiliwa']:
             print('passing over troublesome entry')
             continue
