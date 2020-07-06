@@ -20,7 +20,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 modelo_de_representacion_JSON = {
     'agrupacion_lingüística': '',
     'familia_lingüística': '',
-    'autodenominaciones': [],
+    'autodenominaciones': [['']],
     'variante': '',
     'representación_geográfica': [{}]  # esta es una lista de dictionaries porque un variante puede ser hablado en estados múltiples
 }
@@ -69,10 +69,10 @@ def sacar_autodes(td):
     @td: debe ser el primer table de una row, en el que queda las autodenominaciones y el variante
 
     NOTA: este método de extraer las autodenominaciones presupone que siempre hay dos
-    maneras de describir las autods: primero como string y luego lo mismo de otra forma en brackets.
+    maneras de describir las autodes: primero como string y luego lo mismo de otra forma en brackets.
     entonces lo separamos con un newline '\n' como aparece en la página de INALI
 
-    parace que el variante no queda entre "paragraph HTML tags" mientras las autodenominaciones sí
+    parace que el variante no queda entre "paragraph HTML tags" mientras las autodenominaciones sí,
     así que sacamos los autodes por buscar todos los paragraph tags <p></p> en el table
     '''
     pstrings = []
@@ -80,11 +80,17 @@ def sacar_autodes(td):
         for pstr in p.strings:
             pstrings.append(pstr.strip())
 
+    # reconstruir los autodes como aparecen en la página.
+    # a veces hay más que una autodenominacion en una agrupación lingüística,
+    # así que las autodenominaciones var a ser un list de lists de strings,
+    # y tendrá uno o más entradas siguiendo los datos
     autodes = []
     for i in range(len(pstrings)):
         if (i+1) % 2 == 0:
-            autode = '/n'.join([pstrings[i-1], pstrings[i]])
+            # autode = '/n'.join[pstrings[i-1], pstrings[i]])
+            autode = [pstrings[i-1], pstrings[i]]
             autodes.append(autode)
+
     print('autodenominaciones extraidos del table: {}'.format(autodes))
     return autodes
 
@@ -92,6 +98,7 @@ def sacar_autodes(td):
 def sacar_variante(td):
     '''@td: debe ser el mismo table que tiene las autodenominaciones'''
     variante = td.contents[-1].strip()
+    variante = variante.strip('<>')
     print('variante extraido del table: {}'.format(variante))
     return variante
 
@@ -119,7 +126,7 @@ def parse_datos_geos(datos_geos):
         # si ya tenemos el estado, sabemos que esta parte describe localidades
         if parte.__class__ == bs4.element.NavigableString and repr_geo[estado]:
             localidades = parte.strip(' :\n')
-            repr_geo[estado][municipio].extend([localidades])
+            repr_geo[estado][municipio].extend([localidades.strip('.')])
 
         # si hay multiples estados en los que se hablan la misma variante
         # van a ser separados por "linebreaks". entonces usamos el linebreak
@@ -203,7 +210,7 @@ if __name__ == '__main__':
             variante = sacar_variante(all_tds[0])
 
             # TEMPORARY:
-            if variante in ['<otomí de Ixtenco>', '<otomí de Tilapa o del sur>', '<zapoteco de San Felipe Tejalápam>']:
+            if variante in ['otomí de Ixtenco', 'otomí de Tilapa o del sur', 'zapoteco de San Felipe Tejalápam']:
                 continue
 
             # seguimos con los datos geográficos, que están en el segundo table
