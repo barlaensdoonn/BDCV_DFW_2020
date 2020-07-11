@@ -1,7 +1,7 @@
 # extraer datos de páginas de INALI sobre clasificación geográfica de lenguas indígenas
 # base URL: https://www.inali.gob.mx/clin-inali/
 # creado por Brandon Aleson 4/22/20
-# versión actualizado 7/10/20
+# versión actualizado 7/11/20
 
 import os
 import bs4
@@ -9,6 +9,7 @@ import json
 import requests
 import logging
 import logging.config
+from collections import Counter
 
 # cada vez que hacemos una toca al inali.cob.mx, recibimos una alarma así:
 # "InsecureRequestWarning: Unverified HTTPS request is being made. Adding certificate verification is strongly advised."
@@ -64,6 +65,13 @@ modelo_de_representacion_JSON = {
     'autodenominaciones': [['']],
     'variante': '',
     'representación_geográfica': [{}]  # esta es una lista de dictionaries porque un variante puede ser hablado en estados múltiples
+}
+
+# aquí tenemos los URLs, agrupacions, or variantes que ahora son problemáticos (están echando Excepciones)
+datos_problematicos = {
+    'urls': ['https://www.inali.gob.mx/clin-inali/html/l_mazahua.html', 'https://www.inali.gob.mx/clin-inali/html/l_qanjobal.html'],
+    'agrupaciones': ['Chuj', 'kiliwa'],
+    'variantes': ['otomí de Ixtenco', 'otomí de Tilapa o del sur', 'zapoteco de San Felipe Tejalápam']
 }
 
 
@@ -207,6 +215,9 @@ if __name__ == '__main__':
     logger.info('* * * * * * * * * * * * * * * * *')
     logger.info('logging configured')
 
+    # inicar nuestro objecto de contar
+    numeros_de_datos = Counter()
+
     # esto es el URL donde se encuentra todos los vínculos de las agrupaciones lingüísticas
     # ver aquí más detalle sobre "verify" y certificates:
     # https://stackoverflow.com/questions/28667684/python-requests-getting-sslerror
@@ -219,7 +230,7 @@ if __name__ == '__main__':
 
     for agrup_url in agrup_urls:
         # TEMPORARY:
-        if agrup_url in ['https://www.inali.gob.mx/clin-inali/html/l_mazahua.html', 'https://www.inali.gob.mx/clin-inali/html/l_qanjobal.html']:
+        if agrup_url in datos_problematicos['urls']:
             logger.warning('esta vínculo echa una Exception: {}'.format(agrup_url))
             logger.warning('seguimos con la próxima...')
             continue
@@ -232,7 +243,7 @@ if __name__ == '__main__':
         agrup_ling, familia_ling = sacar_agrup_y_familia(sopa)
 
         # TEMPORARY:
-        if agrup_ling in ['Chuj', 'kiliwa']:
+        if agrup_ling in datos_problematicos['agrupaciones']:
             logger.warning('esta agrupación echa una Exception: {}'.format(agrup_ling))
             logger.warning('seguimos con la próxima')
             continue
@@ -260,7 +271,7 @@ if __name__ == '__main__':
             variante = sacar_variante(all_tds[0])
 
             # TEMPORARY:
-            if variante in ['otomí de Ixtenco', 'otomí de Tilapa o del sur', 'zapoteco de San Felipe Tejalápam']:
+            if variante in datos_problematicos['variantes']:
                 logger.warning('este variante echa una Exception: {}'.format(variante))
                 logger.warning('seguimos con el próximo...')
                 continue
@@ -278,6 +289,20 @@ if __name__ == '__main__':
                 'representación_geográfica': repr_geo
             }
 
-            # actualmente ya tenemos todos los datos, entonces los escribimos a un JSON file
+            # contar este variante
+            numeros_de_datos['variantes'] += 1
+
+            # ahora ya tenemos todos los datos, entonces los escribimos a un JSON file
             output_variante_json(datos_del_variante)
             logger.info('- - - - - - - - - - - - - - - - -')
+
+        # contar esta agrupación
+        numeros_de_datos['agrupaciones'] += 1
+
+    logger.info('ya hemos sacado todos los datos que pudimos de las páginas de INALI')
+    logger.info('los datos de {} agrupacions fueron extraidos (menos los variantes problematicos)'.format(numeros_de_datos['agrupaciones']))
+    logger.info('los datos de {} variantes fueran extraidos'.format(numeros_de_datos['variantes']))
+    logger.warning('estos son las vínculos, agrupaciones, y variantes que ahora están echando Excepciones')
+    logger.warning('o sea, no pudimos extraer los datos de los siguentes:')
+    for key, value in datos_problematicos.items():
+        logger.warning('{}: {}'.format(key, value))
